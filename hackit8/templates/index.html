@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<style>
+body {
+      font: 10px sans-serif;
+    }
+    
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+    
+   
+    .line {
+      fill: none;
+      stroke: #761E0B;
+      stroke-width: 1.5px;
+    }
+    
+    .lightblue {
+      fill: none;
+      stroke: #FF5733;
+      stroke-width: 1.5px;
+    }
+
+.main text {
+    font: 10px sans-serif;	
+}
+
+circle {
+    fill: #761E0B;
+}
+</style>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet"
+	href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript"
+	src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.js"></script>
+<script
+	src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js"></script>
+	<script src="//d3js.org/d3.v3.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.4/jspdf.min.js"></script>
+	    <script src="https://rawgit.com/exupero/saveSvgAsPng/gh-pages/saveSvgAsPng.js"></script>
+    <script src="https://rawgit.com/MrRio/jsPDF/master/dist/jspdf.debug.js"></script>
+	<script type="text/javascript">
+	/**
+ * @param {SVGElement} svg
+ * @param {Function} callback
+ * @param {jsPDF} callback.pdf
+ * */
+function svg_to_pdf(svg, callback) {
+  svgAsDataUri(svg, {}, function(svg_uri) {
+    var image = document.createElement('img');
+
+    image.src = svg_uri;
+    image.onload = function() {
+      var canvas = document.createElement('canvas');
+      var context = canvas.getContext('2d');
+      var doc = new jsPDF('p', 'pt', 'letter');
+      var dataUrl;
+
+      canvas.width = image.width;
+      canvas.height = image.height;
+      context.drawImage(image, 0, 0, image.width, image.height);
+      /*
+      var imgData=context.getImageData(0,0,canvas.width,canvas.height);
+      var data=imgData.data;
+      for(var i=0;i<data.length;i+=4){
+          if(data[i+3]<255){
+              data[i]=255;
+              data[i+1]=255;
+              data[i+2]=255;
+              data[i+3]=255;
+          }
+      }
+      context.putImageData(imgData,0,0);*/
+      dataUrl = canvas.toDataURL('image/png');
+      doc.addImage(dataUrl, 'png', 0, 0, parseInt(image.width)+30, parseInt(image.height)+30);
+
+      callback(doc);
+    }
+  });
+}
+
+/**
+ * @param {string} name Name of the file
+ * @param {string} dataUriString
+*/
+function download_pdf(name, dataUriString) {
+  var link = document.createElement('a');
+  link.addEventListener('click', function(ev) {
+    link.href = dataUriString;
+    link.download = name;
+    document.body.removeChild(link);
+  }, false);
+  document.body.appendChild(link);
+  link.click();
+}
+
+
+
+
+	$(document).ready(function() {
+		$("#exportpdf").hide();
+		$("#exportpdf").on("click", function () {
+			svg_to_pdf(document.querySelector("#historysvg"), function (pdf) {
+                download_pdf('Historygraph.pdf', pdf.output('dataurlstring'));
+            });
+            svg_to_pdf(document.querySelector("#predictsvg"), function (pdf) {
+                download_pdf('Predictiongraph.pdf', pdf.output('dataurlstring'));
+            });
+        });
+		$('select').select2();
+		var customerData = [{ id: 0, text: 'Customer1' }, { id: 1, text: 'Customer2' }, { id: 2, text: 'Customer3' }, { id: 3, text: 'Customer4' }, { id: 4, text: 'Customer5' }];
+		var productData = [{ id: 0, text: 'ISE' }, { id: 1, text: 'Anyconnect' }, { id: 2, text: 'ACS' }, { id: 3, text: 'EWS' }, { id: 4, text: 'AWS' }];
+		var entitlementData = [{ id: 0, text: 'Base' }, { id: 1, text: 'Plus' }, { id: 2, text: 'Apex' }, { id: 3, text: 'Tacacs' }];
+		
+		/*$("#customerList").select2({
+			placeholder: "Choose Customer",
+			allowClear: true,
+		  	data: customerData
+		});
+		
+		$("#productList").select2({
+			placeholder: "Choose Product",
+			allowClear: true,
+		  	data: productData
+		});
+
+		$("#entitlementList").select2({
+			placeholder: "Choose Entitlement",
+			allowClear: true,
+		  	data: entitlementData
+		});*/
+		
+		
+		/*$(".legend").on('click', function(){
+			console.log(this.id);
+			
+		});*/
+
+		
+		
+		$('#customerList').on('change', function(){
+			console.log(this.selectedOptions[0].text+'   '+this.selectedOptions[0].value);	
+			$.ajax({
+				url: "hackit8/products",
+				method:"POST",
+				data: {"customer" : $('#customerList').val(), csrfmiddlewaretoken:'{{csrf_token}}' }
+				}).done(function(data){
+						console.log("get_customer passed")
+						console.log(data);
+						/*$("#productList").find('option').remove();
+						$.each(JSON.parse(data).products, function(i,val){
+							$("#productList").append("<option value="+val+">"+val+"</option>")
+						})*/
+						
+				}).fail(function(error){
+						console.log("get_customer failed")
+						console.log(error);
+				});
+			});
+
+		$('#productList').on('change', function(){
+			console.log(this.selectedOptions[0].text+'   '+this.selectedOptions[0].value);	
+			$.ajax({
+				url: "hackit8/entitlements",
+				method:"POST",
+				data: {"customer": $('#customerList').val(),
+					   "product": $('#productList').val(),csrfmiddlewaretoken:'{{csrf_token}}' }
+				}).done(function(data){
+						console.log("get_entitlements passed")
+						console.log(data);
+						/*$("#productList").find('option').remove();
+						$.each(JSON.parse(data).products, function(i,val){
+							$("#productList").append("<option value="+val+">"+val+"</option>")
+						})
+						$("#entitlementList").find('option').remove();
+						$.each(JSON.parse(data).entitlements, function(i,val){
+							$("#entitlementList").append("<option value="+val+">"+val+"</option>")
+						})*/
+
+				}).fail(function(error){
+						console.log("get_entitlements failed")
+						console.log(error);
+				});
+			});
+	
+		$('#entitlementList').on('change', function(){
+			console.log(this.selectedOptions[0].text+'   '+this.selectedOptions[0].value);	
+			$.ajax({
+
+			    url: "hackit8/alldata",
+				method:"POST",
+				data: {"customer": $('#customerList').val(),
+					   "product": $('#productList').val(),
+					   "entitlement": $('#entitlementList').val(),csrfmiddlewaretoken:'{{csrf_token}}' }
+				}).done(function(data){
+					    console.log("get_all_data passed")
+						st = data.split("|||");
+						// console.log(st[0]);
+						// console.log(st[1]);
+						// console.log(st[2]);
+						plotHistoryGraph(JSON.parse(st[0]),JSON.parse(st[2]));
+						plotPredictedGraph(JSON.parse(st[1]), JSON.parse(st[2]))
+						$("#exportpdf").show();
+				}).fail(function(error){
+					    console.log("get_all_data failed")
+						console.log(error);
+				});
+			})
+		});
+
+
+	
+	function test(obj){
+		console.log("tested"+obj);
+		/*var circledata = [{"date":"20111001","Base":"63.4"},{"date":"20111002","Base":"58.0"},{"date":"20111003","Base":"53.3"},{"date":"20111004","Base":"55.7"},{"date":"20111005","Base":"64.2"},{"date":"20111006","Base":"58.8"},{"date":"20111007","Base":"57.9"},{"date":"20111008","Base":"61.8"},{"date":"20111009","Base":"69.3"},{"date":"20111010","Base":"71.2"},{"date":"20111011","Base":"68.7"},{"date":"20111012","Base":"61.8"},{"date":"20111013","Base":"63.0"},{"date":"20111014","Base":"66.9"},{"date":"20111015","Base":"61.7"},{"date":"20111016","Base":"61.8"},{"date":"20111017","Base":"62.8"},{"date":"20111018","Base":"60.8"},{"date":"20111019","Base":"62.1"},{"date":"20111020","Base":"65.1"},{"date":"20111021","Base":"55.6"},{"date":"20111022","Base":"54.4"}];
+		var linedata = [{"date":"20111001","Base":"56"},{"date":"20111002","Base":"57.0"},{"date":"20111003","Base":"58.3"},{"date":"20111004","Base":"59.7"},{"date":"20111005","Base":"60.2"},{"date":"20111006","Base":"62.8"},{"date":"20111007","Base":"63.9"},{"date":"20111008","Base":"64.8"},{"date":"20111009","Base":"65.3"},{"date":"20111010","Base":"66.2"},{"date":"20111011","Base":"67.7"},{"date":"20111012","Base":"68.8"},{"date":"20111013","Base":"69.0"},{"date":"20111014","Base":"67.9"},{"date":"20111015","Base":"61.7"},{"date":"20111016","Base":"71.8"},{"date":"20111017","Base":"72.8"},{"date":"20111018","Base":"60.8"},{"date":"20111019","Base":"62.1"},{"date":"20111020","Base":"65.1"},{"date":"20111021","Base":"55.6"},{"date":"20111022","Base":"54.4"}];
+		
+		var circledata1 = [{"date":"20111001","Base":"63.4"},{"date":"20111002","Base":"58.0"},{"date":"20111003","Base":"53.3"},{"date":"20111004","Base":"55.7"},{"date":"20111005","Base":"64.2"},{"date":"20111006","Base":"58.8"},{"date":"20111007","Base":"57.9"},{"date":"20111008","Base":"61.8"},{"date":"20111009","Base":"69.3"},{"date":"20111010","Base":"71.2"},{"date":"20111011","Base":"68.7"},{"date":"20111012","Base":"61.8"},{"date":"20111013","Base":"63.0"},{"date":"20111014","Base":"66.9"},{"date":"20111015","Base":"61.7"},{"date":"20111016","Base":"61.8"},{"date":"20111017","Base":"62.8"},{"date":"20111018","Base":"60.8"},{"date":"20111019","Base":"62.1"},{"date":"20111020","Base":"65.1"},{"date":"20111021","Base":"55.6"},{"date":"20111022","Base":"54.4"}];
+		var linedata1 = [{"date":"20111001","Base":"56"},{"date":"20111002","Base":"57.0"},{"date":"20111003","Base":"58.3"},{"date":"20111004","Base":"59.7"},{"date":"20111005","Base":"60.2"},{"date":"20111006","Base":"62.8"},{"date":"20111007","Base":"63.9"},{"date":"20111008","Base":"64.8"},{"date":"20111009","Base":"65.3"},{"date":"20111010","Base":"66.2"},{"date":"20111011","Base":"67.7"},{"date":"20111012","Base":"68.8"},{"date":"20111013","Base":"69.0"},{"date":"20111014","Base":"67.9"},{"date":"20111015","Base":"61.7"},{"date":"20111016","Base":"71.8"},{"date":"20111017","Base":"72.8"},{"date":"20111018","Base":"60.8"},{"date":"20111019","Base":"62.1"},{"date":"20111020","Base":"65.1"},{"date":"20111021","Base":"55.6"},{"date":"20111022","Base":"54.4"}];
+		
+		plotHistoryGraph(linedata,circledata);
+		plotPredictedGraph(linedata1,circledata1);*/
+		}
+
+	function plotPredictedGraph(linedata, circledata){
+		
+		
+	    var margin = {
+	        top: 20,
+	        right: 80,
+	        bottom: 30,
+	        left: 50
+	      },
+	      width = 700 - margin.left - margin.right,
+	      height = 500 - margin.top - margin.bottom;
+
+	    var parseDate = d3.time.format("%Y%m%d").parse;
+
+	    var x = d3.time.scale()
+	      .range([0, width]);
+
+	    var y = d3.scale.linear()
+	      .range([height, 0]);
+
+	    var color = d3.scale.category10();
+
+	    var xAxis = d3.svg.axis()
+	      .scale(x)
+	      .orient("bottom");
+
+	    var yAxis = d3.svg.axis()
+	      .scale(y)
+	      .orient("left");
+
+	    var line = d3.svg.line()
+	      .x(function(d) {
+	        return x(d.date);
+	      })
+	      .y(function(d) {
+	        return y(d.temperature);
+	      });
+	    //d3.selectAll("svg").remove();
+	    var svg = d3.select("#predictedGraph").append("svg")
+	      .attr("width", width + margin.left + margin.right)
+	      .attr("height", height + margin.top + margin.bottom)
+	      .attr("id", "predictsvg")
+	      .append("g")
+	      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+	    /* var data = d3.tsv.parse(myData);
+		console.log(JSON.stringify(data)); */
+		
+		
+	    color.domain(d3.keys(linedata[0]).filter(function(key) {
+	      return key !== "date";
+	    }));
+
+	    linedata.forEach(function(d) {
+	      d.date = parseDate(d.date);
+	    });
+
+	    circledata.forEach(function(d) {
+		      d.date = parseDate(d.date);
+		    });
+
+	    var cities = color.domain().map(function(name) {
+	      return {
+	        name: name,
+	        values: linedata.map(function(d) {
+	          return {
+	            date: d.date,
+	            temperature: +d[name]
+	          };
+	        })
+	      };
+	    });
+
+	    x.domain(d3.extent(linedata, function(d) {
+	      return d.date;
+	    }));
+
+	    y.domain([
+	      d3.min(cities, function(c) {
+	        return d3.min(c.values, function(v) {
+	          return v.temperature;
+	        });
+	      }),
+	      d3.max(cities, function(c) {
+	        return d3.max(c.values, function(v) {
+	          return v.temperature;
+	        });
+	      })
+	    ]);
+
+	    // var legend = svg.selectAll('g')
+	    //   .data(cities)
+	    //   .enter()
+	    //   .append('g')
+	    //   .attr('class', 'legend')
+	    //   .attr('id', function(d) {
+	    //     return d.name;
+	    //   });
+
+	    // legend.append('rect')
+	    //   .attr('x', width - 20)
+	    //   .attr('y', function(d, i) {
+	    //     return i * 20;
+	    //   })
+	    //   .attr('width', 20)
+	    //   .attr('height', 2)
+	    //   .style('fill', function(d) {
+	    //     return color(d.name);
+	    //   });
+
+	    // legend.append('text')
+	    //   .attr('x', width+1)
+	    //   .attr('y', function(d, i) {
+	    //     return (i * 20) + 9;
+	    //   })
+	    //   .text(function(d) {
+	    //     return d.name+ " Revenue rate";
+	    //   });
+
+
+
+	    svg.append("g")
+	      .attr("class", "y axis")
+	      .call(yAxis)
+	      .append("text")
+	      .attr("transform", "rotate(-90)")
+	      .attr("y", 6)
+	      .attr("dy", ".71em")
+	      .style("text-anchor", "end")
+	      .text("Purchase Count");
+
+	    svg.append("g")
+	    .attr("class", "x axis")
+	    .call(xAxis)
+	    .attr("transform", "translate(0," + height + ")");
+	    
+	    
+	    
+	    var city = svg.selectAll(".city")
+	      .data(cities)
+	      .enter().append("g")
+	      .attr("class", "city");
+
+	    city.append("path")
+	      .attr("class", "line")
+	      .attr("d", function(d) {
+	        return line(d.values);
+	      })
+	      .style("stroke", function(d) {
+	        return "#FF5733";
+	      });
+
+	    // city.append("text")
+	    //   .datum(function(d) {
+	    //     return {
+	    //       name: d.name,
+	    //       value: d.values[d.values.length - 1]
+	    //     };
+	    //   })
+	    //   .attr("transform", function(d) {
+	    //     return "translate(" + x(d.value.date) + "," + y(d.value.temperature) + ")";
+	    //   })
+	    //   .attr("x", 3)
+	    //   .attr("dy", ".35em")
+	    //   .text(function(d) {
+	    //     return d.name;
+	    //   });
+
+	    var mouseG = svg.append("g")
+	      .attr("class", "mouse-over-effects");
+
+	    mouseG.append("path") // this is the black vertical line to follow mouse
+	      .attr("class", "mouse-line")
+	      .style("stroke", "black")
+	      .style("stroke-width", "1px")
+	      .style("opacity", "0");
+
+
+	    svg.selectAll("scatter-dots")
+	      .data(circledata)
+	      .enter().append("svg:circle")
+	          .attr("cx", function (d,i) { return x(d.date); } )
+	          .attr("cy", function (d) { return y(d.max_count); } )
+	          .attr("r", 4);
+	      
+}
+	
+	function plotHistoryGraph(linedata, circledata){
+		
+		
+			    var margin = {
+			        top: 20,
+			        right: 80,
+			        bottom: 30,
+			        left: 50
+			      },
+			      width = 700 - margin.left - margin.right,
+			      height = 500 - margin.top - margin.bottom;
+
+			    var parseDate = d3.time.format("%Y%m%d").parse;
+
+			    var x = d3.time.scale()
+			      .range([0, width]);
+
+			    var y = d3.scale.linear()
+			      .range([height, 0]);
+
+			    var color = d3.scale.category10();
+			    var xAxis = d3.svg.axis()
+			      .scale(x)
+			      .orient("bottom");
+
+			    var yAxis = d3.svg.axis()
+			      .scale(y)
+			      .orient("left");
+
+			    var line = d3.svg.line()
+			      .x(function(d) {
+			        return x(d.date);
+			      })
+			      .y(function(d) {
+			        return y(d.temperature);
+			      });
+			    d3.selectAll("svg").remove();
+			    var svg = d3.select("#historyTrendGraph").append("svg")
+			      .attr("width", width + margin.left + margin.right)
+			      .attr("height", height + margin.top + margin.bottom)
+			      .append("g")
+			      .attr("id", "historysvg")
+			      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+			    /* var data = d3.tsv.parse(myData);
+				console.log(JSON.stringify(data)); */
+				
+				
+			    color.domain(d3.keys(linedata[0]).filter(function(key) {
+			      return key !== "date";
+			    }));
+
+			    linedata.forEach(function(d) {
+			      d.date = parseDate(d.date);
+			    });
+
+			    circledata.forEach(function(d) {
+				      d.date = parseDate(d.date);
+				    });
+
+			    var cities = color.domain().map(function(name) {
+			      return {
+			        name: name,
+			        values: linedata.map(function(d) {
+			          return {
+			            date: d.date,
+			            temperature: +d[name]
+			          };
+			        })
+			      };
+			    });
+
+			    var cities2 = color.domain().map(function(name) {
+				      return {
+				        name: name,
+				        values: circledata.map(function(d) {
+				          return {
+				            date: d.date,
+				            temperature: +d[name]
+				          };
+				        })
+				      };
+				    });
+
+			    x.domain(d3.extent(linedata, function(d) {
+			      return d.date;
+			    }));
+
+			    y.domain([
+			      d3.min(cities, function(c) {
+			        return d3.min(c.values, function(v) {
+			          return v.temperature;
+			        });
+			      }),
+			      d3.max(cities, function(c) {
+			        return d3.max(c.values, function(v) {
+			          return v.temperature;
+			        });
+			      })
+			    ]);
+
+			    // var legend = svg.selectAll('g')
+			    //   .data(cities)
+			    //   .enter()
+			    //   .append('g')
+			    //   .attr('class', 'legend')
+			    //   .attr('id', function(d) {
+			    //     return d.name;
+			    //   });
+
+			    // legend.append('rect')
+			    //   .attr('x', width - 20)
+			    //   .attr('y', function(d, i) {
+			    //     return i * 20;
+			    //   })
+			    //   .attr('width', 20)
+			    //   .attr('height', 2)
+			    //   .style('fill', function(d) {
+			    //     return color(d.name);
+			    //   });
+
+			    // legend.append('text')
+			    //   .attr('x', width+1)
+			    //   .attr('y', function(d, i) {
+			    //     return (i * 20) + 9;
+			    //   })
+			    //   .text(function(d) {
+			    //     return d.name+ " Revenue rate";
+			    //   });
+
+
+
+			    svg.append("g")
+			      .attr("class", "y axis")
+			      .call(yAxis)
+			      .append("text")
+			      .attr("transform", "rotate(-90)")
+			      .attr("y", 6)
+			      .attr("dy", ".71em")
+			      .style("text-anchor", "end")
+			      .text("Purchase Count");
+
+			    svg.append("g")
+			    .attr("class", "x axis")
+			    .call(xAxis)
+			    .attr("transform", "translate(0," + height + ")");
+			    
+			    
+			    
+			    var city = svg.selectAll(".city")
+			      .data(cities)
+			      .enter().append("g")
+			      .attr("class", "city");
+
+			    city.append("path")
+			      .attr("class", "line")
+			      .attr("d", function(d) {
+			        return line(d.values);
+			      })
+			      .style("stroke", function(d) {
+			        return "#FF5733";
+			      });
+
+			    // city.append("text")
+			    //   .datum(function(d) {
+			    //     return {
+			    //       name: d.name,
+			    //       value: d.values[d.values.length - 1]
+			    //     };
+			    //   })
+			    //   .attr("transform", function(d) {
+			    //     return "translate(" + x(d.value.date) + "," + y(d.value.temperature) + ")";
+			    //   })
+			    //   .attr("x", 3)
+			    //   .attr("dy", ".35em")
+			    //   .text(function(d) {
+			    //     return d.name;
+			    //   });	
+
+
+
+			    var city2 = svg.selectAll(".city2")
+			      .data(cities2)
+			      .enter().append("g")
+			      .attr("class", "city2");
+
+			    city2.append("path")
+			      .attr("class", "line")
+			      .attr("d", function(d) {
+			        return line(d.values);
+			      })
+			      .style("stroke", "line");
+
+			    // city2.append("text")
+			    //   .datum(function(d) {
+			    //     return {
+			    //       name: d.name,
+			    //       value: d.values[d.values.length - 1]
+			    //     };
+			    //   })
+			    //   .attr("transform", function(d) {
+			    //     return "translate(" + x(d.value.date) + "," + y(d.value.temperature) + ")";
+			    //   })
+			    //   .attr("x", 3)
+			    //   .attr("dy", ".35em")
+			    //   .text(function(d) {
+			    //     return d.name;
+			    //   });	
+	}
+	
+	</script>
+</head>
+<body>
+	<div class="container">
+		<h1>Cisco License Analyser</h1>
+		<form class="form-horizontal">
+			<!--<div class="form-group">
+				<label class="control-label col-sm-2" for="email">Email:</label>
+				<div class="col-sm-10">
+					<input type="email" class="form-control" id="email"
+						placeholder="Enter email">
+				</div>
+			</div> -->
+			<div class="form-group">
+				  <label class="control-label col-sm-2"  for="sel1">Customer:</label>
+				  <div class="col-sm-6">
+					  <select class="form-control js-example-data-array" id="customerList">
+					  	{% for customer in customers %}
+					    <option>{{customer}}</option>
+					    {% endfor %}
+					  </select>
+				  </div>
+			</div>
+			<div class="form-group">
+				  <label class="control-label col-sm-2"  for="sel1">Product:</label>
+				  <div class="col-sm-6">
+					  <select class="form-control js-example-data-array" id="productList">
+				  		{% for product in products %}
+					    <option>{{product}}</option>
+					    {% endfor %}
+					</select>
+				  </div>
+			</div>
+			<div class="form-group">
+				  <label class="control-label col-sm-2"  for="entitlementList">Entitlement:</label>
+				  <div class="col-sm-6">
+				  		<select class="form-control js-example-data-array" id="entitlementList">
+				  		{% for entitlement in entitlements%}
+					    <option>{{entitlement}}</option>
+					    {% endfor %}
+					    </select>
+				  </div>
+			</div>
+			<!-- <div class="form-group">
+				<div class="col-sm-offset-2 col-sm-10">
+					<div class="checkbox">
+						<label><input type="checkbox"> Remember me</label>
+					</div>
+				</div>
+			</div>
+			<div class="form-group">
+				<div class="col-sm-offset-2 col-sm-10">
+					<button type="submit" class="btn btn-default">Submit</button>
+				</div>
+			</div> -->
+		</form>
+	</div>
+	<div>
+		<div class="row">
+			<div class="col-sm-6">
+				<div id="historyTrendGraph" ></div>
+			</div>
+			<div class="col-sm-6">
+				<div id="predictedGraph"></div>
+			</div>
+		</div>
+	</div>
+	<button class="btn btn-primary pull-right" id="exportpdf">Export to PDF</button>
+</body>
+</html>
